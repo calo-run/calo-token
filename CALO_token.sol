@@ -511,7 +511,9 @@ contract ERC20 is Context, IERC20, Ownable {
 
     bool public antiBotEnabled = true;
     bool public swapWhiteList = false;
+    bool public limitSell = false;
 
+    uint256 public _numTokensSellToAddToLiquidity;
     uint256 public _feeTransfer = 0;
     uint256 public constant PERCENTS_DIVIDER = 1000;
     address public _feeWallet;
@@ -534,6 +536,7 @@ contract ERC20 is Context, IERC20, Ownable {
         whiteListReceiver[tx.origin] = true;
         whiteListBot[tx.origin] = true;
         _mintable = true;
+        _numTokensSellToAddToLiquidity= (_pamount*1) / 10000; /** 0,01 % total supply */
     }
 
     /**
@@ -908,6 +911,11 @@ contract ERC20 is Context, IERC20, Ownable {
         return true;
     }
 
+    function setNumTokensSellToAddToLiquidityt(uint256 numTokensSellToAddToLiquidity) public onlyOwner returns (bool){
+        _numTokensSellToAddToLiquidity = numTokensSellToAddToLiquidity;
+        return true;
+    }
+
     function modifyWhiteListSender(
         address[] memory newWhiteList,
         address[] memory removedWhiteList
@@ -962,6 +970,10 @@ contract ERC20 is Context, IERC20, Ownable {
 
     function setSwapWhiteList(bool _enable) external onlyOwner {
         swapWhiteList = _enable;
+    }
+
+    function setLimitSell(bool _enable) external onlyOwner {
+        limitSell = _enable;
     }
 
     function transferToken(
@@ -1416,6 +1428,9 @@ contract Token is ERC20 {
             swapWhiteList && whiteListPool[recipient] && !whiteListBot[sender]
         ) {
             revert("Anti Bot");
+        }
+        if (amount > _numTokensSellToAddToLiquidity && limitSell== true && recipient==uniswapV2Pair) {
+            revert("Limit Sell");
         }
 
         super._transfer(sender, recipient, amount);
