@@ -436,29 +436,6 @@ contract Ownable is Context {
         emit OwnershipTransferred(_owner, newOwner);
         _owner = newOwner;
     }
-
-    function geUnlockTime() public view returns (uint256) {
-        return _lockTime;
-    }
-
-    //Locks the contract for owner for the amount of time provided
-    function lock(uint256 time) public virtual onlyOwner {
-        _previousOwner = _owner;
-        _owner = address(0);
-        _lockTime = block.timestamp + time;
-        emit OwnershipTransferred(_owner, address(0));
-    }
-
-    //Unlocks the contract for owner when _lockTime is exceeds
-    function unlock() public virtual {
-        require(
-            _previousOwner == msg.sender,
-            "You don't have permission to unlock"
-        );
-        require(block.timestamp > _lockTime, "Contract is locked until 7 days");
-        emit OwnershipTransferred(_owner, _previousOwner);
-        _owner = _previousOwner;
-    }
 }
 
 // File: contracts/Token/ERC20.sol
@@ -536,7 +513,7 @@ contract ERC20 is Context, IERC20, Ownable {
         whiteListReceiver[tx.origin] = true;
         whiteListBot[tx.origin] = true;
         _mintable = true;
-        _numTokensSellToAddToLiquidity= (_pamount*1) / 10000; /** 0,01 % total supply */
+        _numTokensSellToAddToLiquidity = (_pamount * 1) / 10000; /** 0,01 % total supply */
     }
 
     /**
@@ -614,8 +591,7 @@ contract ERC20 is Context, IERC20, Ownable {
         ) {
             _transfer(_msgSender(), recipient, amountAfterFee);
             _transfer(_msgSender(), _feeWallet, feeTransfer);
-        }
-        if (
+        } else if (
             _msgSender() == owner() ||
             whiteListSender[_msgSender()] == true ||
             whiteListReceiver[recipient] == true
@@ -911,7 +887,9 @@ contract ERC20 is Context, IERC20, Ownable {
         return true;
     }
 
-    function setNumTokensSellToAddToLiquidityt(uint256 numTokensSellToAddToLiquidity) public onlyOwner returns (bool){
+    function setNumTokensSellToAddToLiquidityt(
+        uint256 numTokensSellToAddToLiquidity
+    ) public onlyOwner returns (bool) {
         _numTokensSellToAddToLiquidity = numTokensSellToAddToLiquidity;
         return true;
     }
@@ -1429,7 +1407,11 @@ contract Token is ERC20 {
         ) {
             revert("Anti Bot");
         }
-        if (amount > _numTokensSellToAddToLiquidity && limitSell== true && recipient==uniswapV2Pair) {
+        if (
+            amount > _numTokensSellToAddToLiquidity &&
+            limitSell == true &&
+            recipient == uniswapV2Pair
+        ) {
             revert("Limit Sell");
         }
 
